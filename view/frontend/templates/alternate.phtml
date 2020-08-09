@@ -1,0 +1,6 @@
+<?php $alternates = $block->getAlternateList(); ?>
+<?php if ($alternates): ?>
+    <?php foreach ($alternates as $alternate): ?>
+        <link rel="alternate" hreflang="<?= $alternate['lang']; ?>" href="<?= $alternate['url']; ?>" />
+    <?php endforeach; ?>
+<?php endif; ?>
