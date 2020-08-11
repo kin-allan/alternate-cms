@@ -2,25 +2,61 @@
 
 namespace Nimbus\AlternateCms\Block;
 
+use Magento\Framework\View\Element\Template\Context;
+use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\Store;
+use Magento\Store\Model\ScopeInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Store\Api\StoreRepositoryInterface;
+use Magento\Cms\Model\Page as CmsPage;
+use Magento\Directory\Helper\Data as DirectoryHelperData;
 
 class Alternate extends \Magento\Framework\View\Element\Template {
 
+    /**
+     * @var HttpRequest
+     */
     protected $request;
+
+    /**
+     * @var \Magento\Cms\Model\Page
+     */
     protected $cmsModel;
+
+    /**
+     * @var StoreManagerInterface
+     */
     protected $storeManager;
+
+    /**
+     * @var StoreRepositoryInterface
+     */
     protected $storeRepository;
+
+    /**
+     * @var ScopeConfigInterface
+     */
     protected $scopeConfig;
 
+    /**
+     * Alternate constructor.
+     * @param Context                  $context
+     * @param HttpRequest              $request
+     * @param CmsPage                  $cmsModel
+     * @param StoreManagerInterface    $storeManager
+     * @param StoreRepositoryInterface $storeRepository
+     * @param ScopeConfigInterface     $scopeConfig
+     * @param array                    $data
+     */
     public function __construct(
-        \Magento\Framework\View\Element\Template\Context $context,
-        \Magento\Framework\App\Request\Http $request,
-        \Magento\Cms\Model\Page $cmsModel,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Store\Api\StoreRepositoryInterface $storeRepository,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
+        Context $context,
+        HttpRequest $request,
+        CmsPage $cmsModel,
+        StoreManagerInterface $storeManager,
+        StoreRepositoryInterface $storeRepository,
+        ScopeConfigInterface $scopeConfig,
         array $data = [])
     {
         $this->request          = $request;
@@ -40,19 +76,19 @@ class Alternate extends \Magento\Framework\View\Element\Template {
         $list = [];
 
         if ($this->isCmsPage() && $this->cmsModel->getIdentifier() != "no-route") {
-
-            $currentWebsiteId = $this->storeManager->getWebsite()->getId();
+            $website = $this->storeManager->getWebsite();
+            $currentWebsiteId = $website->getId();
             $storeIds = $this->cmsModel->getStores();
 
             //If it's all stores, get the website store ids
-            if (count($storeIds) == 1 && $storeIds[0] == 0) {
-                $storeIds = $this->storeManager->getWebsite()->getStoreIds();
+            if (count($storeIds) === 1 && (int) $storeIds[0] === 0) {
+                $storeIds = $website->getStoreIds();
             }
 
             $identifier = $this->cmsModel->getIdentifier();
 
             //If it's home, remove identifier as it's the base url
-            if ($this->request->getControllerName() == "index" && $this->request->getActionName() == "index") {
+            if ($this->request->getControllerName() === "index" && $this->request->getActionName() === "index") {
                 $identifier = "";
             }
 
@@ -79,13 +115,7 @@ class Alternate extends \Magento\Framework\View\Element\Template {
      */
     private function isCmsPage()
     {
-        $isCms = false;
-
-        if ($this->request->getRouteName() == "cms") {
-            $isCms = true;
-        }
-
-        return $isCms;
+        return $this->request->getRouteName() === "cms";
     }
 
     /**
@@ -95,7 +125,7 @@ class Alternate extends \Magento\Framework\View\Element\Template {
      */
     private function getFormattedStoreLocale(Store $store)
     {
-        $locale = $this->scopeConfig->getValue('general/locale/code', ScopeInterface::SCOPE_STORE, $store->getId());
+        $locale = $this->scopeConfig->getValue(DirectoryHelperData::XML_PATH_DEFAULT_LOCALE, ScopeInterface::SCOPE_STORE, $store->getId());
         return str_replace("_", "-", strtolower($locale));
     }
 }
